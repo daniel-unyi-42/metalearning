@@ -1,4 +1,5 @@
 from models.mlp import MLP
+from siren import Siren, get_mgrid
 from utils.weight_matching import mlp_permutation_spec, weight_matching, apply_permutation
 from utils.utils import flatten_params, lerp
 from utils.plot import plot_interp_acc
@@ -19,10 +20,10 @@ def main():
     args = parser.parse_args()
 
     # load models
-    model_a = MLP()
-    model_b = MLP()
+    model_a = Siren(device=torch.device('cpu'), in_features=2, hidden_features=64, out_features=1, hidden_layers=3)
+    model_b = Siren(device=torch.device('cpu'), in_features=2, hidden_features=64, out_features=1, hidden_layers=3)
     checkpoint = torch.load(args.model_a)
-    model_a.load_state_dict(checkpoint)   
+    model_a.load_state_dict(checkpoint)
     checkpoint_b = torch.load(args.model_b)
     model_b.load_state_dict(checkpoint_b)
 
@@ -34,20 +35,23 @@ def main():
     updated_params = apply_permutation(permutation_spec, final_permutation, flatten_params(model_b))
 
     
-    # test against mnist
-    transform=transforms.Compose([
-      transforms.ToTensor(),
-      transforms.Normalize((0.1307,), (0.3081,))
-      ])
-    test_kwargs = {'batch_size': 5000}
-    train_kwargs = {'batch_size': 5000}
-    dataset = datasets.MNIST('../data', train=False,
-                      transform=transform)
-    dataset1 = datasets.MNIST('../data', train=True, download=True,
-                      transform=transform)
+    # # test against mnist
+    # transform=transforms.Compose([
+    #   transforms.ToTensor(),
+    #   transforms.Normalize((0.1307,), (0.3081,))
+    #   ])
+    # test_kwargs = {'batch_size': 5000}
+    # train_kwargs = {'batch_size': 5000}
+    # dataset = datasets.MNIST('../data', train=False,
+    #                   transform=transform)
+    # dataset1 = datasets.MNIST('../data', train=True, download=True,
+    #                   transform=transform)
 
-    train_loader = torch.utils.data.DataLoader(dataset1,**train_kwargs)                  
-    test_loader = torch.utils.data.DataLoader(dataset, **test_kwargs)
+    x = get_mgrid(28, 2)
+    import numpy as np
+    y = np.load('/home/daniel/src/METALEARNING/MNIST/ProtoMNIST/0.npy')
+    y = torch.from_numpy(y).reshape(-1, 1)
+
     lambdas = torch.linspace(0, 1, steps=25)
 
     test_acc_interp_clever = []
@@ -61,9 +65,9 @@ def main():
     for lam in tqdm(lambdas):
       naive_p = lerp(lam, model_a_dict, model_b_dict)
       model_b.load_state_dict(naive_p)
-      test_loss, acc = test(model_b.cuda(), 'cuda', test_loader)
+      acc = test(model_b.cuda(), 'cuda', x, y)
       test_acc_interp_naive.append(acc)
-      train_loss, acc = test(model_b.cuda(), 'cuda', train_loader)
+      acc = test(model_b.cuda(), 'cuda', x, y)
       train_acc_interp_naive.append(acc)
 
     # smart
@@ -75,9 +79,9 @@ def main():
     for lam in tqdm(lambdas):
       naive_p = lerp(lam, model_a_dict, model_b_dict)
       model_b.load_state_dict(naive_p)
-      test_loss, acc = test(model_b.cuda(), 'cuda', test_loader)
+      acc = test(model_b.cuda(), 'cuda', x, y)
       test_acc_interp_clever.append(acc)
-      train_loss, acc = test(model_b.cuda(), 'cuda', train_loader)
+      acc = test(model_b.cuda(), 'cuda', x, y)
       train_acc_interp_clever.append(acc)
 
     fig = plot_interp_acc(lambdas, train_acc_interp_naive, test_acc_interp_naive,
@@ -86,3 +90,7 @@ def main():
 
 if __name__ == "__main__":
   main()
+
+
+# /opt/conda/bin/python mlp_mnist_weight_matching.py --model_a model_0.pt --model_b model_1.pt
+# /opt/conda/bin/python mlp_mnist_weight_matching.py --model_a /home/daniel/src/METALEARNING/ProtoMNISTModels/0_0.pt --model_b /home/daniel/src/METALEARNING/ProtoMNISTModels/1_0.pt
