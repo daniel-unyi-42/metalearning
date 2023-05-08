@@ -8,15 +8,9 @@ class SineLayer(nn.Module):
         self.omega_0 = omega_0
         self.in_features = in_features
         self.linear = nn.Linear(in_features, out_features)
-        self.init_weights()
-    
-    def init_weights(self):
-        with torch.no_grad():
-            self.linear.weight.uniform_(-np.sqrt(6 / self.in_features) / self.omega_0,
-                                        np.sqrt(6 / self.in_features) / self.omega_0)
     
     def forward(self, input):
-        return torch.sin(self.omega_0 * self.linear(input))
+        return torch.relu(self.omega_0 * self.linear(input))
 
 
 class Siren(nn.Module):
@@ -29,9 +23,6 @@ class Siren(nn.Module):
 #         self.net.append(SineLayer(hidden_features, out_features, 
 #                                   omega_0=omega_0))
         final_linear = nn.Linear(hidden_features, out_features)
-        with torch.no_grad():
-            final_linear.weight.uniform_(-np.sqrt(6 / hidden_features) / omega_0, 
-                                          np.sqrt(6 / hidden_features) / omega_0)
         self.net.append(final_linear)
         self.net = nn.Sequential(*self.net)
         self.device = device

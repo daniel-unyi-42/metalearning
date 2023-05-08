@@ -6,6 +6,7 @@ data/
 *.so
 
 # Distribution / packaging
+runs/
 bin/
 build/
 develop-eggs/

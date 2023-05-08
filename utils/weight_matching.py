@@ -234,7 +234,7 @@ def weight_matching(ps: PermutationSpec, params_a, params_b, max_iter=100, init_
       assert (torch.tensor(ri) == torch.arange(len(ri))).all()
       oldL = torch.einsum('ij,ij->i', A, torch.eye(n)[perm[p].long()]).sum()
       newL = torch.einsum('ij,ij->i', A,torch.eye(n)[ci, :]).sum()
-      print(f"{iteration}/{p}: {newL - oldL}")
+      #print(f"{iteration}/{p}: {newL - oldL}")
       progress = progress or newL > oldL + 1e-12
 
       perm[p] = torch.Tensor(ci)

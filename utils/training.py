@@ -1,5 +1,7 @@
+import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import torch
+import nibabel as nib
 
 def train(args, model, device, train_loader, optimizer, epoch, softmax=False):
     model.train()
@@ -24,7 +26,7 @@ def train(args, model, device, train_loader, optimizer, epoch, softmax=False):
     print('Train Accuracy: ({:.0f}%) '.format(acc))
 
 
-def test(model, device, x, y, softmax=False):
+def test(model, device, x, y, id):
     # model.eval()
     # test_loss = 0
     # correct = 0
@@ -43,13 +45,22 @@ def test(model, device, x, y, softmax=False):
     # print('\nAverage loss: {:.4f}, Accuracy: ({:.0f}%)\n'.format(
     #     test_loss, acc))
     # return test_loss, acc
+    
     model.eval()
     with torch.no_grad():
         x, y = x.to(device), y.to(device)
         output = model(x)
-        import matplotlib.pyplot as plt
+
+        # pred = output.argmax(dim=1).cpu().numpy()
+        # img = nib.load('../0BigBrain/rh.DKTatlas40.label.gii')
+        # img_data = img.agg_data()
+        # img.remove_gifti_data_array(0)
+        # img.add_gifti_data_array(nib.gifti.gifti.GiftiDataArray(pred, intent='NIFTI_INTENT_LABEL', datatype='NIFTI_TYPE_INT32'))
+        # nib.save(img, f'animation/pred{id}.label.gii')
+        # test_loss = F.cross_entropy(output, y).item()
+        
         plt.imshow(output.cpu().numpy().reshape(28, 28))
-        plt.savefig(f"output.png", dpi=100)
-        test_loss = F.mse_loss(output, y).item()  # sum up batch loss
+        plt.savefig(f"animation/output_{id}.png", dpi=100)
+        test_loss = F.mse_loss(output, y).item()
     print('\nAverage loss: {:.4f}\n'.format(test_loss))
     return test_loss
